@@ -1,49 +1,14 @@
 # PPS-Unidad3Actividad6-RCE-RaulAlbalatPerez
 Explotación y Mitigación de Remote Code Execution (RCE).
-Tenemos como objetivo:
-
-> - Ver cómo se pueden hacer ataques Remote Code Execution (RCE).
->
-> - Analizar el código de la aplicación que permite ataques de Remote Code Execution (RCE).
->
-> - Implementar diferentes modificaciones del codigo para aplicar mitigaciones o soluciones.
-
-## ¿Qué es RCE?
----
-Los servidores web generalmente brindan a los desarrolladores la capacidad de agregar pequeñas piezas de código dinámico dentro de páginas HTML estáticas, sin tener que lidiar con lenguajes completos del lado del servidor o del lado del cliente. Esta característica es proporcionada por El lado del servidor incluye(SSI).
-
-Server-Side Includes son directivas que el servidor web analiza antes de servir la página al usuario. Representan una alternativa a escribir programas CGI o incrustar código utilizando lenguajes de scripting del lado del servidor, cuando solo se necesitan realizar tareas muy simples. Las implementaciones comunes de SSI proporcionan directivas (comandos) para incluir archivos externos, para establecer e imprimir variables de entorno CGI del servidor web, o para ejecutar scripts CGI externos o comandos del sistema.
-
-SSI puede conducir a una Ejecución de Comando Remoto (RCE), sin embargo, la mayoría de los servidores web tienen el exec directiva desactivada por defecto.
-
-Esta es una vulnerabilidad muy similar a una vulnerabilidad de inyección de lenguaje de scripting clásico. Una mitigación es que el servidor web debe configurarse para permitir SSI. Por otro lado, las vulnerabilidades de inyección SSI son a menudo más fáciles de explotar, ya que las directivas SSI son fáciles de entender y, al mismo tiempo, bastante potentes, por ejemplo, pueden generar el contenido de los archivos y ejecutar comandos del sistema.
-
-
-Consecuencias de RCE:
-
-• Acceso a información sensible (usuarios, archivos, configuración).
-
-• Ejecución de comandos maliciosos (descarga y ejecución de malware).
-
-• Escalada de privilegios y control total del sistema.
-
-## ACTIVIDADES A REALIZAR
----
-> Lee detenidamente la sección de Inyección de comandos de la página de PortWigger <https://portswigger.net/web-security/os-command-injection>
-
-> Lee el siguiente [documento sobre Explotación y Mitigación de ataques de Remote Code Execution](./files/ExplotacionYMitigacionRCE.pdf)
-
-> También y como marco de referencia, tienes [ la sección de correspondiente de ataque XSS reglejado de la **Proyecto Web Security Testing Guide** (WSTG) del proyecto **OWASP**.](https://owasp.org/www-project-web-security-testing-guide/stable/4-Web_Application_Security_Testing/07-Input_Validation_Testing/08-Testing_for_SSI_Injection)
-
-
-Vamos realizando operaciones:
-
 ## Código vulnerable
 ---
 En esta ocación vamos a ver una página en el que tenemos un input para meter una dirección ip.
 El programa realizará un ping sobre la dirección que hayamos introducido.
-escribimos  rce.php
+escribimos  rce.php.
+Para ello creo un directorio rce dentro de **www** para tener los rce que cree más adelante todos en el mismo sitio.Para este primer código php
+lo llamo **rec.php**
 
+Este código PHP toma una dirección IP enviada por un formulario web y ejecuta el comando ping al recibirla mediante POST, mostrando luego el resultado en pantalla. El formulario permite al usuario introducir una IP para hacer ping desde el servidor.
 ~~~
 <?php
 if (isset($_POST['ip'])) {
@@ -58,20 +23,25 @@ if (isset($_POST['ip'])) {
         <button type="submit">Hacer Ping</button>
 </form>
 ~~~
+![](imagenes/rce1.png)
 
 El código permite que el usuario pueda introducir los símbolos ";" "&" y de esta manera podemos ejecutar otros comandos adicionales en el sistema.
 
 ## Explotación de RCE
+Entramos en la url con el comando 
 ---
 Acceder a la URL y ejecutar un comando básico:
 ~~~
-http://localhost/rce.php
+http://localhost/rce/rce.php
 ~~~
+![](imagenes/rce2.png)
 
-![](images/rce1.png)
+
 
 
 Si introducimos una dirección ip se nos muestra si el servidor está accesible
+
+![](imagenes/rce3.png)
 
 **Ver información del usuario**
 Sin embargo podemos anudar consultas con el operador & por ejemplo 
@@ -80,11 +50,11 @@ Sin embargo podemos anudar consultas con el operador & por ejemplo
 ~~~
  que nos mostraría el usuario con el que estamos ejecutando las sentencias php:
 
-![](images/rce2.png)
+![](imagenes/rce4.png)
 
 Si se muestra información del sistema o similar (uid=1000(user) gid=1000(user)), la aplicación es vulnerable.
 
-![](images/rce3.png)
+![](imagenes/rce5.png)
 
 **Intentar listar archivos del servidor:**
 
@@ -94,21 +64,21 @@ Podemos llegar a listar los archivos del directorio donde se encuentra el archiv
 ~~~
 Si se muestran archivos del sistema en pantalla, el ataque funciona.
 
-![](images/rce4.png)
+![](imagenes/rce6.png)
 
 **Probar más comandos:**
-
+con el **cat /etc/passwd** nos muestra el contenido del archivo **/etc/passwd**, que contiene información sobre las cuentas de usuario del sistema
 ~~~
 8.8.8.8 & cat /etc/passwd
 ~~~
 
-![](images/rce5.png)
+![](imagenes/rce7.png)
 
-Si muestra el contenido de /etc/passwd, el atacante puede extraer credenciales.
+Si muestra el contenido de /etc/passwd, el atacante puede extraer credenciales. Como vemos en la imagen nos lo muestra.
 
 **Intentar descargar y ejecutar malware:**
 
-Sólo para nuestro ejemplo dar permisos de escritura a /var/www/html/
+Sólo para nuestro ejemplo dar permisos de escritura a /var/www/html/ . para ello nos tendremos que meter dentro del contenedor lamp-php83
 
 ~~~
 sudo chmod -R 777 /var/www/html/
@@ -120,20 +90,24 @@ Introducimos codigo para concatenar la ip del servidor dns de Google, con descar
 
 Si lo realiza, estará instalando en el directorio b374k un shell basado en PHP. Luego podremos acceder a él y ejecutar los comandos que queramos.
 
-![](images/rce4.png)
+![](imagenes/rce8.png)
+
+Comprobamos que se ha descargado  el **b374k**
+
+![](imagenes/rce9.png)
 
 ~~~
 http://localhost/b374k/index.php
 ~~~
 
-![](images/rce14.png)
+![](imagenes/rce10.png)
 
 El atacante tiene control total del sistema.
 
 ### Mitigaciones de RCE
 Para las mitigaciones vamos a utilizar otros archivos: 
 
-Este es el contenido de rce.php
+Este es el contenido de rce.php. Lo creamos dentro de www en el lamp
 ~~~
 <?php
 $output = shell_exec($_GET['cmd']);
@@ -141,12 +115,16 @@ echo "<pre>$output</pre>";
 ?>
 ~~~
 
+![](imagenes/rce11.png)
+
 El archivo rce.php nos va a permitar ejecutar comandos de forma que podemos llamarlo desde otros archivos o bien directamente de la forma:
 ~~~
 http://localhost/rce.php?cmd=cat /etc/passwd
 ~~~
 
-Por otra parte tenemos el archivo index.php 
+![](imagenes/rce12.png)
+
+Por otra parte tenemos el archivo index.php que como ya tengo un **index.php** creo **index2.php** en www
 
 ~~~
 <!DOCTYPE html>
@@ -167,7 +145,11 @@ Por otra parte tenemos el archivo index.php
 ~~~
 que lo que hace es crearnos un input para solicitarnos el código a ejecutar y luego, llamar con él, a rce.php.
 
-![](images/rce6.png)
+![](imagenes/rce13.png)
+
+Nos vamos a la URL http://localhost/index2.php para verificarlo.
+
+![](imagenes/rce14.png)
 
 Vamos a modificar rce.php para mitigar las vulnerabilidades.
 
@@ -183,6 +165,8 @@ die("Esta funcionalidad ha sido deshabilitada por razones de seguridad.");
 ?>
 ~~~
 
+![](imagenes/rce15.png)
+
 _Beneficios:_
 
 - Bloquea cualquier intento de ejecución de código en el sistema.
@@ -197,6 +181,8 @@ Si se necesita permitir algunos comandos específicos, usar una lista blanca (wh
 
 Código seguro (rce.php con lista blanca de comandos permitidos)
 
+Me creo un rce3.php en el que ejecutare el código.php
+
 ~~~
 <?php
 $allowed_cmds = ["ls", "whoami", "pwd"];
@@ -207,6 +193,7 @@ $output = shell_exec($_GET['cmd']);
 echo htmlspecialchars($output, ENT_QUOTES, 'UTF-8');
 ?>
 ~~~
+![](imagenes/rce16.png)
 
 Permitimos la ejecución de comandos ls, whoami, pwd, el resto dará mensaje de "comando no permitido".
 
@@ -219,7 +206,7 @@ http://localhost/rce.php?cmd=ls
 
 si nos permite ejecutar el comando ls
 
-![](images/rce7.png)
+![](imagenes/rce17.png)
 
 Pero sin embargo no nos permite la consulta:
 
@@ -227,7 +214,8 @@ Pero sin embargo no nos permite la consulta:
 http://localhost/rce.php?cmd=cat /etc/passwd
 
 ~~~
-![](images/rce8.png)
+![](imagenes/rce18.png)
+
 
 _Beneficios:_
 
@@ -243,6 +231,9 @@ _Beneficios:_
 Si se necesita ejecutar comandos con argumentos, usar escapeshellcmd() para evitar inyección de comandos.
 
 Código seguro (rce.php con escapes para argumentos)
+
+Para ello creo el **rce4.php** en **www**
+
 
 ~~~
 <?php
@@ -264,6 +255,9 @@ if (isset($_GET['cmd'])) {
 }
 ?>
 ~~~
+
+![](imagenes/rce19.png)
+
 
 - Escapa caracteres especiales con escapeshellcmd() para mayor seguridad.
 
@@ -291,7 +285,7 @@ http://localhost/rce.php?cmd=ping 8.8.8.8; rm -rf /
 
 La función **escapeshellarg()** convertirá la entrada en:  'ping 8.8.8.8; rm -rf/), eliminará todo el comando y no ejecuta nada. Por eso controlamos cadena vacía.
 
-![](images/rce9.png)
+![](imagenes/rce20.png)
 
 **Deshabilitar shell_exec() en PHP**
 
@@ -305,12 +299,12 @@ docker exec -it lamp-php83 /bin/bash
 
 Si estamos utilizando la pila LAMP con docker del laborario podemos ver en el archivo de configuración docker-compose.yml que hemos cambiado la ubicación de php:
 
-![](images/rce10.png)
+![](imagenes/rce21.png)
 
 Por lo tanto abrimos el archivo de configuración:
 
 > Aquí una puntualización. Si estamos usando el escenario multicontenedor del entorno de pruebas, podemos ver como en el php.ini tenemos unas configuraciones mínimas, pero tenemos preparados dos ficheros de configuración: php.ini-production y php.ini-development. Si vamos a poner nuestro LAMP o bien en un entorno de producción o de desarrollo deberíamos de renombrar el archivo correspondiente como php.ini para que se establezcan esas configuraciones. Puedes descargarlo aquí el [php.ini](files/php.ini.rce) 
-> ![](images/rce11.png)
+> ![](imagenes/rce22.png)
 
 ~~~
 sudo nano /usr/local/etc/php/php.ini
@@ -322,7 +316,7 @@ Buscar la línea disable_functions y agregar lo siguiente:
 disable_functions = shell_exec, system, exec, passthru, popen, proc_open
 ~~~
 
-![](images/rce12.png)
+![](imagenes/rce23.png)
 
 Guardar los cambios y reiniciar Apache para aplicar los cambios
 
@@ -334,14 +328,16 @@ Guardar los cambios y reiniciar Apache para aplicar los cambios
 **Prueba Final**
 ---
 
-Utilizamos el primer archivo vulnerable que teníamos y probamos intentar obtener el usuario con la URL con cmd=id:
+Utilizamos el último archivo vulnerable que teníamos y probamos intentar obtener el usuario con la URL con cmd=id:
 
 ~~~
-http://localhost/rce.php?cmd=id
+http://localhost/rce/rce4.php?cmd=id
 ~~~
+
 
 Si la mitigación funciona, se debería ver el mensaje "Comando no permitido." en pantalla. o en el caso de que utilizamos el entorno de pruebas, el error php:
 
+![](imagenes/rce24.png)
 
 ## ENTREGA
 
